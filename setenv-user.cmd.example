@@ -1,0 +1,17 @@
+@ECHO OFF
+
+REM set your user-defined envvars here
+
+REM path to git.exe
+SET GIT=
+
+REM path to python.exe
+SET PYTHON=
+
+REM path to python venv
+REM you could also point to an existing conda env
+SET VENV_DIR=
+
+REM extra commandline args passed to *.py scripts
+REM currently not used :(
+SET COMMAND_OPTS=

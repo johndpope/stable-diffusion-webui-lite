@@ -339,7 +339,8 @@ def get_next_sequence_number(path, basename):
     prefix_length = len(basename)
     for p in os.listdir(path):
         if p.startswith(basename):
-            l = os.path.splitext(p[prefix_length:])[0].split('-')  # splits the filename (removing the basename first if one is defined, so the sequence number is always the first element)
+            # splits the filename (removing the basename first if one is defined, so the sequence number is always the first element)
+            l = os.path.splitext(p[prefix_length:])[0].split('-')
             try:
                 result = max(int(l[0]), result)
             except ValueError:
@@ -348,7 +349,8 @@ def get_next_sequence_number(path, basename):
     return result + 1
 
 
-def save_image(image, path, basename, seed=None, prompt=None, extension='png', info=None, short_filename=False, no_prompt=False, grid=False, pnginfo_section_name='parameters', p=None, existing_info=None, forced_filename=None, suffix="", save_to_dirs=None):
+def save_image(image, path, basename, seed=None, prompt=None, extension='png', info=None, short_filename=False, no_prompt=False, 
+               grid=False, pnginfo_section_name='parameters', p=None, existing_info=None, forced_filename=None, suffix="", save_to_dirs=None):
     '''Save an image.
 
     Args:

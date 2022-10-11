@@ -2,7 +2,6 @@ import base64
 import html
 import io
 import json
-import math
 import mimetypes
 import os
 import random
@@ -12,43 +11,33 @@ import traceback
 import platform
 import subprocess as sp
 from functools import reduce
-
-import numpy as np
-import torch
-from PIL import Image, PngImagePlugin
-import piexif
+from PIL import Image
 
 import gradio as gr
 import gradio.utils
 import gradio.routes
 
 from modules import sd_hijack
-from modules.paths import script_path
+from modules.paths import BASE_PATH
 from modules.shared import opts, cmd_opts
 if cmd_opts.deepdanbooru:
-    from modules.deepbooru import get_deepbooru_tags
+    from modules.interrogator.deepbooru import get_deepbooru_tags
 import modules.shared as shared
 from modules.sd_samplers import samplers, samplers_for_img2img
 from modules.sd_hijack import model_hijack
-import modules.ldsr_model
+import modules.upsampler.ldsr_model
 import modules.scripts
-import modules.gfpgan_model
-import modules.codeformer_model
-import modules.styles
+import modules.face_restorer.gfpgan_model
+import modules.codeformer.codeformer_model
+import modules.prompt_helper.styles
 import modules.generation_parameters_copypaste
-from modules import prompt_parser
+from modules.prompt_helper import prompt_parser
 from modules.images import save_image
-import modules.textual_inversion.ui
+import modules.textual_inverter.ui
 
 # this is a fix for Windows users. Without it, javascript files will be served with text/html content-type and the browser will not show any UI
 mimetypes.init()
 mimetypes.add_type('application/javascript', '.js')
-
-
-if not cmd_opts.share and not cmd_opts.listen:
-    # fix gradio phoning home
-    gradio.utils.version_check = lambda: None
-    gradio.utils.get_local_ip_address = lambda: '127.0.0.1'
 
 
 def gr_show(visible=True):
@@ -68,10 +57,10 @@ css_hide_progressbar = """
 # Using constants for these since the variation selector isn't visible.
 # Important that they exactly match script.js for tooltip to work.
 random_symbol = '\U0001f3b2\ufe0f'  # 🎲️
-reuse_symbol = '\u267b\ufe0f'  # ♻️
-art_symbol = '\U0001f3a8'  # 🎨
-paste_symbol = '\u2199\ufe0f'  # ↙
-folder_symbol = '\U0001f4c2'  # 📂
+reuse_symbol  = '\u267b\ufe0f'      # ♻️
+art_symbol    = '\U0001f3a8'        # 🎨
+paste_symbol  = '\u2199\ufe0f'      # ↙
+folder_symbol = '\U0001f4c2'        # 📂
 
 def plaintext_to_html(text):
     text = "<p>" + "<br>\n".join([f"{html.escape(x)}" for x in text.split('\n')]) + "</p>"
@@ -288,7 +277,7 @@ def add_style(name: str, prompt: str, negative_prompt: str):
     if name is None:
         return [gr_show(), gr_show()]
 
-    style = modules.styles.PromptStyle(name, prompt, negative_prompt)
+    style = modules.prompt_helper.styles.PromptStyle(name, prompt, negative_prompt)
     shared.prompt_styles.styles[style.name] = style
     # Save all loaded prompt styles: this allows us to update the storage format in the future more easily, because we
     # reserialize all styles every time we save them
@@ -489,8 +478,8 @@ def setup_progressbar(progressbar, preview, id_part, textinfo=None):
 
 
 def create_ui(wrap_gradio_gpu_call):
-    import modules.img2img
-    import modules.txt2img
+    import modules.diffuser.txt2img
+    import modules.diffuser.txt2img
 
     with gr.Blocks(analytics_enabled=False) as txt2img_interface:
         txt2img_prompt, roll, txt2img_prompt_style, txt2img_negative_prompt, txt2img_prompt_style2, submit, _, _, txt2img_prompt_style_apply, txt2img_save_style, paste, token_counter, token_button = create_toprow(is_img2img=False)
@@ -563,7 +552,7 @@ def create_ui(wrap_gradio_gpu_call):
             connect_reuse_seed(subseed, reuse_subseed, generation_info, dummy_component, is_subseed=True)
 
             txt2img_args = dict(
-                fn=wrap_gradio_gpu_call(modules.txt2img.txt2img),
+                fn=wrap_gradio_gpu_call(modules.diffuser.txt2img.txt2img),
                 _js="submit",
                 inputs=[
                     txt2img_prompt,
@@ -765,7 +754,7 @@ def create_ui(wrap_gradio_gpu_call):
             )
 
             img2img_args = dict(
-                fn=wrap_gradio_gpu_call(modules.img2img.img2img),
+                fn=wrap_gradio_gpu_call(modules.diffuser.txt2img.img2img),
                 _js="submit_img2img",
                 inputs=[
                     dummy_component,
@@ -1048,7 +1037,7 @@ def create_ui(wrap_gradio_gpu_call):
                     learn_rate = gr.Number(label='Learning rate', value=5.0e-03)
                     dataset_directory = gr.Textbox(label='Dataset directory', placeholder="Path to directory with input images")
                     log_directory = gr.Textbox(label='Log directory', placeholder="Path to directory where to write outputs", value="textual_inversion")
-                    template_file = gr.Textbox(label='Prompt template file', value=os.path.join(script_path, "textual_inversion_templates", "style_filewords.txt"))
+                    template_file = gr.Textbox(label='Prompt template file', value=os.path.join(BASE_PATH, "textual_inversion_templates", "style_filewords.txt"))
                     steps = gr.Number(label='Max steps', value=100000, precision=0)
                     create_image_every = gr.Number(label='Save an image to log directory every N steps, 0 to disable', value=500, precision=0)
                     save_embedding_every = gr.Number(label='Save a copy of embedding to log directory every N steps, 0 to disable', value=500, precision=0)
@@ -1300,11 +1289,11 @@ Requested path was: {f}
         (settings_interface, "Settings", "settings"),
     ]
 
-    with open(os.path.join(script_path, "style.css"), "r", encoding="utf8") as file:
+    with open(os.path.join(BASE_PATH, "style.css"), "r", encoding="utf8") as file:
         css = file.read()
 
-    if os.path.exists(os.path.join(script_path, "user.css")):
-        with open(os.path.join(script_path, "user.css"), "r", encoding="utf8") as file:
+    if os.path.exists(os.path.join(BASE_PATH, "user.css")):
+        with open(os.path.join(BASE_PATH, "user.css"), "r", encoding="utf8") as file:
             usercss = file.read()
             css += usercss
 
@@ -1324,8 +1313,8 @@ Requested path was: {f}
                 with gr.TabItem(label, id=ifid):
                     interface.render()
         
-        if os.path.exists(os.path.join(script_path, "notification.mp3")):
-            audio_notification = gr.Audio(interactive=False, value=os.path.join(script_path, "notification.mp3"), elem_id="audio_notification", visible=False)
+        if os.path.exists(os.path.join(BASE_PATH, "notification.mp3")):
+            audio_notification = gr.Audio(interactive=False, value=os.path.join(BASE_PATH, "notification.mp3"), elem_id="audio_notification", visible=False)
 
         text_settings = gr.Textbox(elem_id="settings_json", value=lambda: opts.dumpjson(), visible=False)
         settings_submit.click(
@@ -1498,10 +1487,10 @@ Requested path was: {f}
     return demo
 
 
-with open(os.path.join(script_path, "script.js"), "r", encoding="utf8") as jsfile:
+with open(os.path.join(BASE_PATH, "script.js"), "r", encoding="utf8") as jsfile:
     javascript = f'<script>{jsfile.read()}</script>'
 
-jsdir = os.path.join(script_path, "javascript")
+jsdir = os.path.join(BASE_PATH, "javascript")
 for filename in sorted(os.listdir(jsdir)):
     with open(os.path.join(jsdir, filename), "r", encoding="utf8") as jsfile:
         javascript += f"\n<script>{jsfile.read()}</script>"

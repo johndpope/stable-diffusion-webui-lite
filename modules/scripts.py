@@ -2,11 +2,12 @@ import os
 import sys
 import traceback
 
-import modules.ui as ui
 import gradio as gr
 
-from modules.processing import StableDiffusionProcessing
+from modules import ui
 from modules import shared
+from modules.apps.processing import StableDiffusionProcessing
+
 
 class Script:
     filename = None
@@ -46,37 +47,6 @@ class Script:
     # your description as the value.
     def describe(self):
         return ""
-
-
-scripts_data = []
-
-
-def load_scripts(basedir):
-    if not os.path.exists(basedir):
-        return
-
-    for filename in sorted(os.listdir(basedir)):
-        path = os.path.join(basedir, filename)
-
-        if not os.path.isfile(path):
-            continue
-
-        try:
-            with open(path, "r", encoding="utf8") as file:
-                text = file.read()
-
-            from types import ModuleType
-            compiled = compile(text, path, 'exec')
-            module = ModuleType(filename)
-            exec(compiled, module.__dict__)
-
-            for key, script_class in module.__dict__.items():
-                if type(script_class) == type and issubclass(script_class, Script):
-                    scripts_data.append((script_class, path))
-
-        except Exception:
-            print(f"Error loading script: {filename}", file=sys.stderr)
-            print(traceback.format_exc(), file=sys.stderr)
 
 
 def wrap_call(func, filename, funcname, *args, default=None, **kwargs):
@@ -183,8 +153,39 @@ class ScriptRunner:
                         self.scripts[si].args_from = args_from
                         self.scripts[si].args_to = args_to
 
+
+scripts_data = []
 scripts_txt2img = ScriptRunner()
 scripts_img2img = ScriptRunner()
+
+
+def load_scripts(basedir):
+    if not os.path.exists(basedir):
+        return
+
+    for filename in sorted(os.listdir(basedir)):
+        path = os.path.join(basedir, filename)
+
+        if not os.path.isfile(path):
+            continue
+
+        try:
+            with open(path, "r", encoding="utf8") as file:
+                text = file.read()
+
+            from types import ModuleType
+            compiled = compile(text, path, 'exec')
+            module = ModuleType(filename)
+            exec(compiled, module.__dict__)
+
+            for key, script_class in module.__dict__.items():
+                if type(script_class) == type and issubclass(script_class, Script):
+                    scripts_data.append((script_class, path))
+
+        except Exception:
+            print(f"Error loading script: {filename}", file=sys.stderr)
+            print(traceback.format_exc(), file=sys.stderr)
+
 
 def reload_script_body_only():
     scripts_txt2img.reload_sources()

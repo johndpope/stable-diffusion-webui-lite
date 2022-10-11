@@ -1,116 +1,95 @@
-# Stable Diffusion web UI
-A browser interface based on Gradio library for Stable Diffusion.
+# stable-diffusion-webui-lite
 
-![](txt2img_Screenshot.png)
+    A lightweight version of stable-diffusion-webui, for personal experiments & easy public serving through ngrok tunnel from local PC ;)
 
-Check the [custom scripts](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Custom-Scripts) wiki page for extra scripts developed by users.
+----
 
-## Features
-[Detailed feature showcase with images](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Features):
-- Original txt2img and img2img modes
-- One click install and run script (but you still must install python and git)
-- Outpainting
-- Inpainting
-- Prompt Matrix
-- Stable Diffusion Upscale
-- Attention, specify parts of text that the model should pay more attention to
-    - a man in a ((tuxedo)) - will pay more attention to tuxedo
-    - a man in a (tuxedo:1.21) - alternative syntax
-    - select text and press ctrl+up or ctrl+down to automatically adjust attention to selected text (code contributed by anonymous user)
-- Loopback, run img2img processing multiple times
-- X/Y plot, a way to draw a 2 dimensional plot of images with different parameters
-- Textual Inversion
-    - have as many embeddings as you want and use any names you like for them
-    - use multiple embeddings with different numbers of vectors per token
-    - works with half precision floating point numbers
-- Extras tab with:
-    - GFPGAN, neural network that fixes faces
-    - CodeFormer, face restoration tool as an alternative to GFPGAN
-    - RealESRGAN, neural network upscaler
-    - ESRGAN, neural network upscaler with a lot of third party models
-    - SwinIR, neural network upscaler
-    - LDSR, Latent diffusion super resolution upscaling
-- Resizing aspect ratio options
-- Sampling method selection
-- Interrupt processing at any time
-- 4GB video card support (also reports of 2GB working)
-- Correct seeds for batches
-- Prompt length validation
-     - get length of prompt in tokens as you type
-     - get a warning after generation if some text was truncated
-- Generation parameters
-     - parameters you used to generate images are saved with that image
-     - in PNG chunks for PNG, in EXIF for JPEG
-     - can drag the image to PNG info tab to restore generation parameters and automatically copy them into UI
-     - can be disabled in settings
-- Settings page
-- Running arbitrary python code from UI (must run with --allow-code to enable)
-- Mouseover hints for most UI elements
-- Possible to change defaults/mix/max/step values for UI elements via text config
-- Random artist button
-- Tiling support, a checkbox to create images that can be tiled like textures
-- Progress bar and live image generation preview
-- Negative prompt, an extra text field that allows you to list what you don't want to see in generated image
-- Styles, a way to save part of prompt and easily apply them via dropdown later
-- Variations, a way to generate same image but with tiny differences
-- Seed resizing, a way to generate same image but at slightly different resolution
-- CLIP interrogator, a button that tries to guess prompt from an image
-- Prompt Editing, a way to change prompt mid-generation, say to start making a watermelon and switch to anime girl midway
-- Batch Processing, process a group of files using img2img
-- Img2img Alternative
-- Highres Fix, a convenience option to produce high resolution pictures in one click without usual distortions
-- Reloading checkpoints on the fly
-- Checkpoint Merger, a tab that allows you to merge two checkpoints into one
-- [Custom scripts](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Custom-Scripts) with many extensions from community
-- [Composable-Diffusion](https://energy-based-model.github.io/Compositional-Visual-Generation-with-Composable-Diffusion-Models/), a way to use multiple prompts at once
-     - separate prompts using uppercase `AND`
-     - also supports weights for prompts: `a cat :1.2 AND a dog AND a penguin :2.2`
-- No token limit for prompts (original stable diffusion lets you use up to 75 tokens)
-- DeepDanbooru integration, creates danbooru style tags for anime prompts (add --deepdanbooru to commandline args)
+We do code cleanify on AUTOMATIC1111's [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui), making it lightweight and tidy.
+For code clarity and avoiding compatiblity hells, we so far only support **Windows** platform ;)  
 
-## Installation and Running
-Make sure the required [dependencies](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Dependencies) are met and follow the instructions available for both [NVidia](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Install-and-Run-on-NVidia-GPUs) (recommended) and [AMD](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Install-and-Run-on-AMD-GPUs) GPUs.
+Visit my deployed service for quick experience => [https://kahsolt.pythonanywhere.com/stable-diffusion-webui-lite](https://kahsolt.pythonanywhere.com/stable-diffusion-webui-lite)
 
-Alternatively, use Google Colab:
 
-- [Colab, maintained by Akaibu](https://colab.research.google.com/drive/1kw3egmSn-KgWsikYvOMjJkVDsPLjEMzl)
-- [Colab, original by me, outdated](https://colab.research.google.com/drive/1Iy-xW9t1-OQWhb0hNxueGij8phCyluOh).
+### Features
 
-### Automatic Installation on Windows
-1. Install [Python 3.10.6](https://www.python.org/downloads/windows/), checking "Add Python to PATH"
-2. Install [git](https://git-scm.com/download/win).
-3. Download the stable-diffusion-webui repository, for example by running `git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git`.
-4. Place `model.ckpt` in the `models` directory (see [dependencies](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Dependencies) for where to get it).
-5. _*(Optional)*_ Place `GFPGANv1.4.pth` in the base directory, alongside `webui.py` (see [dependencies](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Dependencies) for where to get it).
-6. Run `webui-user.bat` from Windows Explorer as normal, non-administrator, user.
+- [x] basic txt2img,  img2img, textual-inverse
+- [ ] control variable experiments
+- [ ] recommend prompt words
+- [ ] show model stats (loss, gradients, etc..)
 
-### Automatic Installation on Linux
-1. Install the dependencies:
-```bash
-# Debian-based:
-sudo apt install wget git python3 python3-venv
-# Red Hat-based:
-sudo dnf install wget git python3
-# Arch-based:
-sudo pacman -S wget git python3
-```
-2. To install in `/home/$(whoami)/stable-diffusion-webui/`, run:
-```bash
-bash <(wget -qO- https://raw.githubusercontent.com/AUTOMATIC1111/stable-diffusion-webui/master/webui.sh)
-```
 
-### Installation on Apple Silicon
+### Applications
 
-Find the instructions [here](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Installation-on-Apple-Silicon).
+- txt2img: 
+- img2img: 
+- sketchpad: upload & edit your image, generate  recommend prompts
+- control variable: genarate a series of images with only one parameter changing within given range while others fixed
+- postprocess
+  - face restore: apply models for better face quality
+  - super resoultion: apply models for higher resolution
 
-## Contributing
-Here's how to add code to this repo: [Contributing](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Contributing)
 
-## Documentation
-The documentation was moved from this README over to the project's [wiki](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki).
+### How to deploy my own
 
-## Credits
-- Stable Diffusion - https://github.com/CompVis/stable-diffusion, https://github.com/CompVis/taming-transformers
+This project mainly consists of three workers:
+
+- webui app server
+- ngrok client & monitor website
+- daemon
+
+#### Step 1: setup stable-diffusion toolchains
+
+- install [Miniconda](https://docs.conda.io/en/latest/miniconda.html) and [Git](https://gitforwindows.org/)
+- clone this repo `git clone https://github.com/Kahsolt/stable-diffusion-webui-lite`
+- run `install.cmd` to setup runtime environment
+- place your stable-diffusion checkpoint file (like `model.pth`) under `models/stable-diffusion` folder 
+- run `webui.cmd` to lauch the webui app
+
+ℹ Check it: Now you should be able to visit the **local** service at `http://localhost:7860/`
+
+#### Step 2: expose local service to public network
+
+If you already have a running server with an IPv4 address on public network, you can surely skip this step ;)  
+Otherwise, you need two more tools: 1. a frp-like tool `ngrok` for NAT tunnels to bridge local service to public; 2. a panel webserver like `pythonanywhere` for a fixed domain name, step them up as follows:
+
+- register a [ngrok](https://ngrok.com/) account  (free plan is ok)
+  - download and unzip the `ngrok.exe` executable to `ngrok` folder 
+  - create a `API_KEY`  in your dashboard and save it to file `ngrok/api_key.txt` (create by hand)
+  - run `python ngrok/api_ngrok.py` to test your key is ok
+
+ℹ Check it: Now **everyone** should be able to visit your service through ngrok's tunnel like `http://xxxx-xx-xxx-.xx.ngrok.com/` on public network
+
+However, the free plan of ngrok won't give you a fixed domain name, every time you restart ngrok manually or due to network errors, the service url will change, which makes the service rather unstable. Hence we need a fix domain name to track ngrok's dynamic-generated domain name. Luckily, `pythonanywhere.com` will do!
+
+- register a [pythonanywhere](https://www.pythonanywhere.com) account  (free plan is ok)
+  - now you have a free domain name like `<username>.pythonanywhere.com`
+  - create a `API_KEY` 
+  - 
+
+ℹ  Check it: Now everyone should be able to visit your service **redirected** from your public pythonanywhere site like `http://<username>.pythonanywhere.com/stable-diffusion-webui-lite`
+
+#### Step 3: start stable serving 
+
+Once you've done the steps above without errors, you can safely shut them down, then try this all-in-one launcher script:
+
+- run `start.cmd`
+
+This will start both **webui server** and **ngrok client**, together with an extra daemon service to monitor, if either is dead unexpectly, the daemon will try to restart it automatically.
+
+Don't forget that your pythonanywhere site will also track your ngrok status.
+
+ℹ Now, everything's perfectly done! Taker your time~
+
+Make Setu Great Again! 😀
+
+
+#### Acknowledgment
+
+Greatest thanks all contributing developers concerned with Stable-Diffusion.
+
+- stable-diffusion-webui - https://github.com/AUTOMATIC1111/stable-diffusion-webui
+- Stable Diffusion - https://github.com/CompVis/stable-diffusion, 
+- Taming Transformers - https://github.com/CompVis/taming-transformers
 - k-diffusion - https://github.com/crowsonkb/k-diffusion.git
 - GFPGAN - https://github.com/TencentARC/GFPGAN.git
 - CodeFormer - https://github.com/sczhou/CodeFormer
@@ -126,3 +105,8 @@ The documentation was moved from this README over to the project's [wiki](https:
 - Initial Gradio script - posted on 4chan by an Anonymous user. Thank you Anonymous user.
 - DeepDanbooru - interrogator for anime diffusors https://github.com/KichangKim/DeepDanbooru
 - (You)
+
+----
+
+by Armit
+2022/10/10
