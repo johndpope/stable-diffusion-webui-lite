@@ -13,5 +13,5 @@ REM you could also point to an existing conda env
 SET VENV_DIR=
 
 REM extra commandline args passed to *.py scripts
-REM currently not used :(
+REM see options in `modules/cmd_opts.py`
 SET COMMAND_OPTS=

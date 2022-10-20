@@ -1,15 +1,22 @@
 import os
 import sys
 import traceback
+from types import ModuleType
 
 import gradio as gr
 
 from modules import ui
-from modules import shared
-from modules.apps.processing import StableDiffusionProcessing
+from modules.paths import SCRIPT_PATH
+from modules import runtime
+from modules.runtime import state
+from modules.processing import StableDiffusionProcessing
+
+
+scripts_data = []
 
 
 class Script:
+
     filename = None
     args_from = None
     args_to = None
@@ -51,18 +58,16 @@ class Script:
 
 def wrap_call(func, filename, funcname, *args, default=None, **kwargs):
     try:
-        res = func(*args, **kwargs)
-        return res
+        return func(*args, **kwargs)
     except Exception:
         print(f"Error calling: {filename}/{funcname}", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)
 
-    return default
-
 
 class ScriptRunner:
+
     def __init__(self):
-        self.scripts = []
+        self.scripts = []   # [Script]
 
     def setup_ui(self, is_img2img):
         for script_class, path in scripts_data:
@@ -128,75 +133,59 @@ class ScriptRunner:
         script_args = args[script.args_from:script.args_to]
         processed = script.run(p, *script_args)
 
-        shared.total_tqdm.clear()
+        state.total_tqdm.clear()
 
         return processed
 
     def reload_sources(self):
-        for si, script in list(enumerate(self.scripts)):
-            with open(script.filename, "r", encoding="utf8") as file:
-                args_from = script.args_from
-                args_to = script.args_to
-                filename = script.filename
-                text = file.read()
+        for i, script in list(enumerate(self.scripts)):
+            script_fn = script.filename
+            with open(script_fn, "r", encoding="utf8") as fh:
+                text = fh.read()
 
                 from types import ModuleType
 
-                compiled = compile(text, filename, 'exec')
-                module = ModuleType(script.filename)
+                compiled = compile(text, script_fn, 'exec')
+                module = ModuleType(script_fn)
                 exec(compiled, module.__dict__)
 
                 for key, script_class in module.__dict__.items():
                     if type(script_class) == type and issubclass(script_class, Script):
-                        self.scripts[si] = script_class()
-                        self.scripts[si].filename = filename
-                        self.scripts[si].args_from = args_from
-                        self.scripts[si].args_to = args_to
+                        self.scripts[i] = script_class()
+                        self.scripts[i].filename = script_fn
+                        self.scripts[i].args_from = script.args_from
+                        self.scripts[i].args_to = script.args_to
 
 
-scripts_data = []
-scripts_txt2img = ScriptRunner()
-scripts_img2img = ScriptRunner()
+def load_scripts():
+    if not os.path.exists(SCRIPT_PATH): return
 
-
-def load_scripts(basedir):
-    if not os.path.exists(basedir):
-        return
-
-    for filename in sorted(os.listdir(basedir)):
-        path = os.path.join(basedir, filename)
-
-        if not os.path.isfile(path):
-            continue
+    for fn in sorted(os.listdir(SCRIPT_PATH)):
+        fp = os.path.join(SCRIPT_PATH, fn)
+        if not os.path.isfile(fp): continue
 
         try:
-            with open(path, "r", encoding="utf8") as file:
+            with open(fp, "r", encoding="utf8") as file:
                 text = file.read()
 
-            from types import ModuleType
-            compiled = compile(text, path, 'exec')
-            module = ModuleType(filename)
+            compiled = compile(text, fp, 'exec')
+            module = ModuleType(fn)
             exec(compiled, module.__dict__)
 
             for key, script_class in module.__dict__.items():
                 if type(script_class) == type and issubclass(script_class, Script):
-                    scripts_data.append((script_class, path))
-
+                    scripts_data.append((script_class, fp))
         except Exception:
-            print(f"Error loading script: {filename}", file=sys.stderr)
+            print(f"Error loading script: {fn}", file=sys.stderr)
             print(traceback.format_exc(), file=sys.stderr)
 
 
 def reload_script_body_only():
-    scripts_txt2img.reload_sources()
-    scripts_img2img.reload_sources()
+    runtime.script_runner.reload_sources()
 
 
-def reload_scripts(basedir):
-    global scripts_txt2img, scripts_img2img
-
+def reload_scripts():
     scripts_data.clear()
-    load_scripts(basedir)
+    load_scripts()
 
-    scripts_txt2img = ScriptRunner()
-    scripts_img2img = ScriptRunner()
+    runtime.script_runner = ScriptRunner()

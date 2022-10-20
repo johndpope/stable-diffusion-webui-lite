@@ -7,8 +7,8 @@ import torch
 import numpy as np
 
 from modules.prompt_helper import prompt_parser
-from modules.shared import opts, cmd_opts, state
-from modules import shared
+from modules.cmd_opts import cmd_opts, opts
+from modules.runtime import state, total_tqdm, diffusers
 
 import k_diffusion.sampling
 import ldm.models.diffusion.ddim
@@ -18,6 +18,7 @@ import ldm.models.diffusion.plms
 SamplerData = namedtuple('SamplerData', ['name', 'constructor', 'aliases', 'options'])
 
 SAMPLERS_K_DIFFUSION = [
+    # (label, funcname, aliases, options)
     ('Euler a',       'sample_euler_ancestral', ['k_euler_a'],    {}),
     ('Euler',         'sample_euler',           ['k_euler'],      {}),
     ('LMS',           'sample_lms',             ['k_lms'],        {}),
@@ -31,20 +32,17 @@ SAMPLERS_K_DIFFUSION = [
     ('DPM2 a Karras', 'sample_dpm_2_ancestral', ['k_dpm_2_a_ka'], {'scheduler': 'karras'}),
 ]
 
-samplers_data_k_diffusion = [
+samplers_k_diffusion = [
     SamplerData(label, lambda model, funcname=funcname: KDiffusionSampler(funcname, model), aliases, options)
-    for label, funcname, aliases, options in SAMPLERS_K_DIFFUSION
-    if hasattr(k_diffusion.sampling, funcname)
+        for label, funcname, aliases, options in SAMPLERS_K_DIFFUSION
+            if hasattr(k_diffusion.sampling, funcname)
 ]
 
-all_samplers = [
-    *samplers_data_k_diffusion,
+samplers = [
+    *samplers_k_diffusion,
     SamplerData('DDIM', lambda model: VanillaStableDiffusionSampler(ldm.models.diffusion.ddim.DDIMSampler, model), [], {}),
     SamplerData('PLMS', lambda model: VanillaStableDiffusionSampler(ldm.models.diffusion.plms.PLMSSampler, model), [], {}),
 ]
-
-samplers = []
-samplers_for_img2img = []
 
 
 def create_sampler_with_index(list_of_configs, index, model):
@@ -55,23 +53,12 @@ def create_sampler_with_index(list_of_configs, index, model):
     return sampler
 
 
-def set_samplers():
-    global samplers, samplers_for_img2img
-
-    hidden = set(opts.hide_samplers)
-    hidden_img2img = set(opts.hide_samplers + ['PLMS', 'DPM fast', 'DPM adaptive'])
-
-    samplers = [x for x in all_samplers if x.name not in hidden]
-    samplers_for_img2img = [x for x in all_samplers if x.name not in hidden_img2img]
-
-
-set_samplers()
-
 sampler_extra_params = {
     'sample_euler': ['s_churn', 's_tmin', 's_tmax', 's_noise'],
-    'sample_heun': ['s_churn', 's_tmin', 's_tmax', 's_noise'],
+    'sample_heun':  ['s_churn', 's_tmin', 's_tmax', 's_noise'],
     'sample_dpm_2': ['s_churn', 's_tmin', 's_tmax', 's_noise'],
 }
+
 
 def setup_img2img_steps(p, steps=None):
     if opts.img2img_fix_steps or steps is not None:
@@ -85,7 +72,8 @@ def setup_img2img_steps(p, steps=None):
 
 
 def sample_to_image(samples):
-    x_sample = shared.sd_model.decode_first_stage(samples[0:1].type(shared.sd_model.dtype))[0]
+    sd_model = diffusers['default']
+    x_sample = sd_model.decode_first_stage(samples[0:1].type(sd_model.dtype))[0]
     x_sample = torch.clamp((x_sample + 1.0) / 2.0, min=0.0, max=1.0)
     x_sample = 255. * np.moveaxis(x_sample.cpu().numpy(), 0, 2)
     x_sample = x_sample.astype(np.uint8)
@@ -95,26 +83,40 @@ def sample_to_image(samples):
 def store_latent(decoded):
     state.current_latent = decoded
 
-    if opts.show_progress_every_n_steps > 0 and shared.state.sampling_step % opts.show_progress_every_n_steps == 0:
-        if not shared.parallel_processing_allowed:
-            shared.state.current_image = sample_to_image(decoded)
-
+    if opts.show_progress_every_n_steps > 0 and state.sampling_step % opts.show_progress_every_n_steps == 0:
+        if not cmd_opts.parallel_processing_allowed:
+            state.current_image = sample_to_image(decoded)
 
 
 def extended_tdqm(sequence, *args, desc=None, **kwargs):
     state.sampling_steps = len(sequence)
     state.sampling_step = 0
 
-    seq = sequence if cmd_opts.disable_console_progressbars else tqdm.tqdm(sequence, *args, desc=state.job, file=shared.progress_print_out, **kwargs)
+    seq = tqdm.tqdm(sequence, *args, desc=state.job, file=opts.progress_print_out, **kwargs)
 
     for x in seq:
-        if state.interrupted or state.skipped:
-            break
+        if state.interrupted or state.skipped: break
 
         yield x
 
         state.sampling_step += 1
-        shared.total_tqdm.update()
+        total_tqdm.update()
+
+
+def extended_trange(sampler, count, *args, **kwargs):
+    state.sampling_steps = count
+    state.sampling_step = 0
+
+    seq = tqdm.trange(count, *args, desc=state.job, file=cmd_opts.progress_print_out, **kwargs)
+
+    for x in seq:
+        if state.interrupted or state.skipped: break
+        if sampler.stop_at is not None and x > sampler.stop_at: break
+
+        yield x
+
+        state.sampling_step += 1
+        total_tqdm.update()
 
 
 ldm.models.diffusion.ddim.tqdm = lambda *args, desc=None, **kwargs: extended_tdqm(*args, desc=desc, **kwargs)
@@ -237,7 +239,7 @@ class CFGDenoiser(torch.nn.Module):
         if tensor.shape[1] == uncond.shape[1]:
             cond_in = torch.cat([tensor, uncond])
 
-            if shared.batch_cond_uncond:
+            if cmd_opts.batch_cond_uncond:
                 x_out = self.inner_model(x_in, sigma_in, cond=cond_in)
             else:
                 x_out = torch.zeros_like(x_in)
@@ -247,7 +249,7 @@ class CFGDenoiser(torch.nn.Module):
                     x_out[a:b] = self.inner_model(x_in[a:b], sigma_in[a:b], cond=cond_in[a:b])
         else:
             x_out = torch.zeros_like(x_in)
-            batch_size = batch_size*2 if shared.batch_cond_uncond else batch_size
+            batch_size = batch_size*2 if cmd_opts.batch_cond_uncond else batch_size
             for batch_offset in range(0, tensor.shape[0], batch_size):
                 a = batch_offset
                 b = min(a + batch_size, tensor.shape[0])
@@ -268,25 +270,6 @@ class CFGDenoiser(torch.nn.Module):
         self.step += 1
 
         return denoised
-
-
-def extended_trange(sampler, count, *args, **kwargs):
-    state.sampling_steps = count
-    state.sampling_step = 0
-
-    seq = range(count) if cmd_opts.disable_console_progressbars else tqdm.trange(count, *args, desc=state.job, file=shared.progress_print_out, **kwargs)
-
-    for x in seq:
-        if state.interrupted or state.skipped:
-            break
-
-        if sampler.stop_at is not None and x > sampler.stop_at:
-            break
-
-        yield x
-
-        state.sampling_step += 1
-        shared.total_tqdm.update()
 
 
 class TorchHijack:
@@ -400,4 +383,3 @@ class KDiffusionSampler:
             extra_params_kwargs['sigmas'] = sigmas
         samples = self.func(self.model_wrap_cfg, x, extra_args={'cond': conditioning, 'uncond': unconditional_conditioning, 'cond_scale': p.cfg_scale}, disable=False, callback=self.callback_state, **extra_params_kwargs)
         return samples
-

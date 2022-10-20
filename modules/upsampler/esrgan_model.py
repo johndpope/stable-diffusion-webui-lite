@@ -7,7 +7,7 @@ from basicsr.utils.download_util import load_file_from_url
 
 from modules import images, devices
 from modules.upsampler.upscaler import Upscaler, UpscalerData
-from modules.shared import opts
+from modules.cmd_opts import opts
 
 # this file is taken from https://github.com/xinntao/ESRGAN
 

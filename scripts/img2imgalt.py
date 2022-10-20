@@ -1,34 +1,35 @@
 from collections import namedtuple
-
-import numpy as np
-from tqdm import trange
-
-import modules.scripts as scripts
-import gradio as gr
-
-from modules import processing, shared, sd_samplers, prompt_parser
-from modules.processing import Processed
-from modules.shared import opts, cmd_opts, state
+from typing_extensions import runtime
 
 import torch
+import numpy as np
+from tqdm import trange
+import gradio as gr
+
+from modules import scripts
+from modules.prompt_helper import prompt_parser
+from modules.apps import processing
+from modules.apps.processing import Processed
+from modules.apps.options import opts
+from modules.diffuser import sd_samplers
+from modules.cmd_opts import cmd_opts
+from modules.runtime import  state
+
 import k_diffusion as K
 
-from PIL import Image
-from torch import autocast
-from einops import rearrange, repeat
 
 
 def find_noise_for_image(p, cond, uncond, cfg_scale, steps):
     x = p.init_latent
 
     s_in = x.new_ones([x.shape[0]])
-    dnw = K.external.CompVisDenoiser(shared.sd_model)
+    dnw = K.external.CompVisDenoiser(runtime.sd_model)
     sigmas = dnw.get_sigmas(steps).flip(0)
 
-    shared.state.sampling_steps = steps
+    state.sampling_steps = steps
 
     for i in trange(1, len(sigmas)):
-        shared.state.sampling_step += 1
+        state.sampling_step += 1
 
         x_in = torch.cat([x] * 2)
         sigma_in = torch.cat([sigmas[i] * s_in] * 2)
@@ -37,7 +38,7 @@ def find_noise_for_image(p, cond, uncond, cfg_scale, steps):
         c_out, c_in = [K.utils.append_dims(k, x_in.ndim) for k in dnw.get_scalings(sigma_in)]
         t = dnw.sigma_to_t(sigma_in)
 
-        eps = shared.sd_model.apply_model(x_in * c_in, t, cond=cond_in)
+        eps = runtime.sd_model.apply_model(x_in * c_in, t, cond=cond_in)
         denoised_uncond, denoised_cond = (x_in + eps * c_out).chunk(2)
 
         denoised = denoised_uncond + (denoised_cond - denoised_uncond) * cfg_scale
@@ -53,7 +54,7 @@ def find_noise_for_image(p, cond, uncond, cfg_scale, steps):
         del x_in, sigma_in, cond_in, c_out, c_in, t,
         del eps, denoised_uncond, denoised_cond, denoised, d, dt
 
-    shared.state.nextjob()
+    state.nextjob()
 
     return x / x.std()
 
@@ -66,13 +67,13 @@ def find_noise_for_image_sigma_adjustment(p, cond, uncond, cfg_scale, steps):
     x = p.init_latent
 
     s_in = x.new_ones([x.shape[0]])
-    dnw = K.external.CompVisDenoiser(shared.sd_model)
+    dnw = K.external.CompVisDenoiser(runtime.sd_model)
     sigmas = dnw.get_sigmas(steps).flip(0)
 
-    shared.state.sampling_steps = steps
+    state.sampling_steps = steps
 
     for i in trange(1, len(sigmas)):
-        shared.state.sampling_step += 1
+        state.sampling_step += 1
 
         x_in = torch.cat([x] * 2)
         sigma_in = torch.cat([sigmas[i - 1] * s_in] * 2)
@@ -85,7 +86,7 @@ def find_noise_for_image_sigma_adjustment(p, cond, uncond, cfg_scale, steps):
         else:
             t = dnw.sigma_to_t(sigma_in)
 
-        eps = shared.sd_model.apply_model(x_in * c_in, t, cond=cond_in)
+        eps = runtime.sd_model.apply_model(x_in * c_in, t, cond=cond_in)
         denoised_uncond, denoised_cond = (x_in + eps * c_out).chunk(2)
 
         denoised = denoised_uncond + (denoised_cond - denoised_uncond) * cfg_scale
@@ -104,7 +105,7 @@ def find_noise_for_image_sigma_adjustment(p, cond, uncond, cfg_scale, steps):
         del x_in, sigma_in, cond_in, c_out, c_in, t,
         del eps, denoised_uncond, denoised_cond, denoised, d, dt
 
-    shared.state.nextjob()
+    state.nextjob()
 
     return x / sigmas[-1]
 
@@ -145,7 +146,7 @@ class Script(scripts.Script):
             if same_everything:
                 rec_noise = self.cache.noise
             else:
-                shared.state.job_count += 1
+                state.job_count += 1
                 cond = p.sd_model.get_learned_conditioning(p.batch_size * [original_prompt])
                 uncond = p.sd_model.get_learned_conditioning(p.batch_size * [original_negative_prompt])
                 if sigma_adjustment:
@@ -155,13 +156,9 @@ class Script(scripts.Script):
                 self.cache = Cached(rec_noise, cfg, st, lat, original_prompt, original_negative_prompt, sigma_adjustment)
 
             rand_noise = processing.create_random_tensors(p.init_latent.shape[1:], [p.seed + x + 1 for x in range(p.init_latent.shape[0])])
-            
             combined_noise = ((1 - randomness) * rec_noise + randomness * rand_noise) / ((randomness**2 + (1-randomness)**2) ** 0.5)
-            
             sampler = sd_samplers.create_sampler_with_index(sd_samplers.samplers, p.sampler_index, p.sd_model)
-
             sigmas = sampler.model_wrap.get_sigmas(p.steps)
-            
             noise_dt = combined_noise - (p.init_latent / sigmas[0])
             
             p.seed = p.seed + 1

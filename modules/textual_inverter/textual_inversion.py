@@ -7,10 +7,9 @@ import tqdm
 import html
 import datetime
 
-
-from modules import shared, devices, sd_hijack, sd_models
-from modules.apps import processing
-import modules.textual_inversion.dataset
+from modules import devices
+from modules.diffuser import sd_hijack, sd_model
+from modules import processing
 
 
 class Embedding:
@@ -261,7 +260,7 @@ Last saved image: {html.escape(last_saved_image)}<br/>
 </p>
 """
 
-    checkpoint = sd_models.select_checkpoint()
+    checkpoint = sd_model.select_checkpoint()
 
     embedding.sd_checkpoint = checkpoint.hash
     embedding.sd_checkpoint_name = checkpoint.model_name

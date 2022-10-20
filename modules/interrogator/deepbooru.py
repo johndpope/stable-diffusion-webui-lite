@@ -65,6 +65,6 @@ def subprocess_init_no_cuda():
 def get_deepbooru_tags(pil_image, threshold=0.5):
     context = get_context('spawn')
     with ProcessPoolExecutor(initializer=subprocess_init_no_cuda, mp_context=context) as executor:
-        f = executor.submit(_load_tf_and_return_tags, pil_image, threshold, )
+        f = executor.submit(_load_tf_and_return_tags, pil_image, threshold)
         ret = f.result()  # will rethrow any exceptions
     return ret

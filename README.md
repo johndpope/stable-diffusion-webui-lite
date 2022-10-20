@@ -1,18 +1,23 @@
 # stable-diffusion-webui-lite
 
-    A lightweight version of stable-diffusion-webui, for personal experiments & easy public serving through ngrok tunnel from local PC ;)
+    A lightweight version of stable-diffusion-webui, for easy public serving through ngrok tunnel from local PC ;)
 
 ----
 
-We do code cleanify on AUTOMATIC1111's [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui), making it lightweight and tidy.
-For code clarity and avoiding compatiblity hells, we so far only support **Windows** platform ;)  
+# DEPRECATED, DO NOT USE!!
 
-Visit my deployed service for quick experience => [https://kahsolt.pythonanywhere.com/stable-diffusion-webui-lite](https://kahsolt.pythonanywhere.com/stable-diffusion-webui-lite)
+We do code cleanify on AUTOMATIC1111's [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui), making modules hierarchy and tidy.
+Concerning about code clarity and avoiding compatiblity hells, we so far only support **Windows** platform with an RXT 3060 ;)  
+
+⚠ This repo is for public web serving and painiting parameters exploring, hence unsafe functions are removed or behaviour changed.  
+⚠ For personal experiments or professional research, you should probobly use the original one :(  
+
+Visit my service for quick experience => [https://kahsolt.pythonanywhere.com/stable-diffusion-webui-lite](https://kahsolt.pythonanywhere.com/stable-diffusion-webui-lite)
 
 
 ### Features
 
-- [x] basic txt2img,  img2img, textual-inverse
+- [x] basic txt2img, img2img, textual-inverse
 - [ ] control variable experiments
 - [ ] recommend prompt words
 - [ ] show model stats (loss, gradients, etc..)

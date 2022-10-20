@@ -1,8 +1,6 @@
-@REM 2022/10/12 
-@REM donwload all the related thesis, you can selectively download mannualy
-@REM also track their available implmentation on github
+@REM Donwload all the related thesis, you can selectively download mannualy
+@REM Also track their available implmentation on github :)
 @ECHO OFF
-
 
 REM High-Resolution Image Synthesis with Latent Diffusion Models (aka. stable-diffusion)
 REM https://github.com/CompVis/stable-diffusion

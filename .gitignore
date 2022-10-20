@@ -1,15 +1,17 @@
 # meta
 __pycache__
-.vscode
+.vscode/*
+!.vscode/settings.json
 
 # thesis
 thesis/*.pdf
 
-# venv
+# generated files
 /venv
-
-# git repo path
 /repos
+/configs
+/tmp
+/outputs
 
 # model ckpts
 *.pt[h]
@@ -17,7 +19,5 @@ thesis/*.pdf
 /models/*
 !/models/README.txt
 
-# generated images
-/outputs
-/embeddings/*
-!/embeddings/README.txt
+# ngrok credential
+ngrok/API_KEY.txt

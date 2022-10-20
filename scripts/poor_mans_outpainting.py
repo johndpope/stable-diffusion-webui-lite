@@ -9,7 +9,6 @@ from modules.processing import Processed, process_images
 from modules.shared import opts, cmd_opts, state
 
 
-
 class Script(scripts.Script):
     def title(self):
         return "Poor man's outpainting"

@@ -4,6 +4,7 @@ import gradio as gr
 from modules.processing import Processed
 from modules.shared import opts, cmd_opts, state
 
+
 class Script(scripts.Script):
 
     def title(self):

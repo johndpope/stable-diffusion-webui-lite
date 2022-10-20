@@ -1,15 +1,16 @@
 import os
-import numpy as np
+import re
+import random
 import PIL
-import torch
 from PIL import Image
+
+import tqdm
+import numpy as np
+import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-import random
-import tqdm
 from modules import devices
-import re
 
 re_tag = re.compile(r"[a-zA-Z][_\w\d()]+")
 
@@ -38,7 +39,7 @@ class PersonalizedBase(Dataset):
         for path in tqdm.tqdm(self.image_paths):
             image = Image.open(path)
             image = image.convert('RGB')
-            image = image.resize((self.width, self.height), PIL.Image.BICUBIC)
+            image = image.resize((self.width, self.height), Image.BICUBIC)
 
             filename = os.path.basename(path)
             filename_tokens = os.path.splitext(filename)[0]

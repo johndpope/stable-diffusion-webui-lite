@@ -7,7 +7,7 @@ import typing
 import tempfile
 import shutil
 
-from sd_utils.processing import StableDiffusionProcessing
+from modules.processing import StableDiffusionProcessing
 
 
 class PromptStyle(typing.NamedTuple):

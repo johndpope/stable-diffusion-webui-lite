@@ -1,18 +1,25 @@
-from modules import shared
+from abc import abstractclassmethod, ABCMeta
 
-class FaceRestore:
-    
+from modules import runtime
+from modules.cmd_opts import opts
+
+
+@abstractclassmethod
+class FaceRestorer(meta_class=ABCMeta):
+
+    @abstractclassmethod    
     def name(self):
-        raise NotImplementedError
+        pass
 
+    @abstractclassmethod
     def restore(self, np_image):
-        raise NotImplementedError
+        pass
 
 
 def restore_faces(np_image):
-    face_restorers = [x for x in shared.face_restorers 
-        if x.name() == shared.opts.face_restoration_model 
-            or shared.opts.face_restoration_model is None]
+    face_restorers = [x for x in runtime.face_restorers 
+        if x.name() == opts.face_restoration_model 
+            or opts.face_restoration_model is None]
     if len(face_restorers) == 0:
         return np_image
 

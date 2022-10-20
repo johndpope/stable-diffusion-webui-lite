@@ -1,14 +1,19 @@
-import contextlib
 import os
+import math
+import contextlib
+from PIL import Image
 
 import numpy as np
 import torch
-from PIL import Image
-from basicsr.utils.download_util import load_file_from_url
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.utils.checkpoint as checkpoint
 from tqdm import tqdm
+from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+from basicsr.utils.download_util import load_file_from_url
 
-from modules.utils import modelloader
-from modules.shared import cmd_opts, opts, device
+from modules.upsampler import friendly_name
+from modules.cmd_opts import cmd_opts, opts, device
 from modules.upsampler.upscaler import Upscaler, UpscalerData
 
 precision_scope = (torch.autocast if cmd_opts.precision == "autocast" else contextlib.nullcontext)
@@ -17,13 +22,6 @@ precision_scope = (torch.autocast if cmd_opts.precision == "autocast" else conte
 # SwinIR: Image Restoration Using Swin Transformer, https://arxiv.org/abs/2108.10257
 # Originally Written by Ze Liu, Modified by Jingyun Liang.
 # -----------------------------------------------------------------------------------
-
-import math
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.utils.checkpoint as checkpoint
-from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
 
 class Mlp(nn.Module):
@@ -881,7 +879,7 @@ class UpscalerSwinIR(Upscaler):
             if "http" in model:
                 name = self.model_name
             else:
-                name = modelloader.friendly_name(model)
+                name = friendly_name(model)
             model_data = UpscalerData(name, model, self)
             scalers.append(model_data)
         self.scalers = scalers

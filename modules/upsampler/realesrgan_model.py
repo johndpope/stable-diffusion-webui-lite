@@ -7,7 +7,7 @@ from PIL import Image
 from basicsr.utils.download_util import load_file_from_url
 
 from modules.upsampler.upscaler import Upscaler, UpscalerData
-from modules.shared import cmd_opts, opts
+from modules.cmd_opts import cmd_opts
 
 
 class UpscalerRealESRGAN(Upscaler):

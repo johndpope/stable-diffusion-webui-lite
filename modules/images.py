@@ -1,18 +1,19 @@
-import datetime
-import math
 import os
-from collections import namedtuple
 import re
+import math
+import string
+import datetime
+from collections import namedtuple
+from PIL import Image, ImageFont, ImageDraw, PngImagePlugin
 
 import numpy as np
 import piexif
 import piexif.helper
-from PIL import Image, ImageFont, ImageDraw, PngImagePlugin
 from fonts.ttf import Roboto
-import string
 
-from modules import sd_samplers, shared
-from modules.shared import opts, cmd_opts
+from modules.diffuser import sd_samplers
+from modules import runtime
+from modules.cmd_opts import cmd_opts, opts
 
 LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
 
@@ -216,7 +217,7 @@ def resize_image(resize_mode, im, width, height):
         scale = max(w / im.width, h / im.height)
 
         if scale > 1.0:
-            upscalers = [x for x in shared.sd_upscalers if x.name == opts.upscaler_for_img2img]
+            upscalers = [x for x in runtime.sd_upscalers if x.name == opts.upscaler_for_img2img]
             assert len(upscalers) > 0, f"could not find upscaler named {opts.upscaler_for_img2img}"
 
             upscaler = upscalers[0]
@@ -395,7 +396,7 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
 
     file_decoration = apply_filename_pattern(file_decoration, p, seed, prompt) + suffix
 
-    if extension == 'png' and opts.enable_pnginfo and info is not None:
+    if extension == 'png' and info is not None:
         pnginfo = PngImagePlugin.PngInfo()
 
         if existing_info is not None:
@@ -406,28 +407,16 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
     else:
         pnginfo = None
 
-    if save_to_dirs is None:
-        save_to_dirs = (grid and opts.grid_save_to_dirs) or (not grid and opts.save_to_dirs and not no_prompt)
-
-    if save_to_dirs:
-        dirname = apply_filename_pattern(opts.directories_filename_pattern or "[prompt_words]", p, seed, prompt).strip('\\ /')
-        path = os.path.join(path, dirname)
-
+    dirname = apply_filename_pattern(opts.directories_filename_pattern or "[prompt_words]", p, seed, prompt).strip('\\ /')
+    path = os.path.join(path, dirname)
     os.makedirs(path, exist_ok=True)
 
-    if forced_filename is None:
-        basecount = get_next_sequence_number(path, basename)
-        fullfn = "a.png"
-        fullfn_without_extension = "a"
-        for i in range(500):
-            fn = f"{basecount + i:05}" if basename == '' else f"{basename}-{basecount + i:04}"
-            fullfn = os.path.join(path, f"{fn}{file_decoration}.{extension}")
-            fullfn_without_extension = os.path.join(path, f"{fn}{file_decoration}")
-            if not os.path.exists(fullfn):
-                break
-    else:
-        fullfn = os.path.join(path, f"{forced_filename}.{extension}")
-        fullfn_without_extension = os.path.join(path, forced_filename)
+    basecount = get_next_sequence_number(path, basename)
+    fullfn = "a.png"
+    for i in range(500):
+        fn = f"{basecount + i:05}" if basename == '' else f"{basename}-{basecount + i:04}"
+        fullfn = os.path.join(path, f"{fn}{file_decoration}.{extension}")
+        if not os.path.exists(fullfn): break
 
     def exif_bytes():
         return piexif.dump({
@@ -438,30 +427,9 @@ def save_image(image, path, basename, seed=None, prompt=None, extension='png', i
 
     if extension.lower() in ("jpg", "jpeg", "webp"):
         image.save(fullfn, quality=opts.jpeg_quality)
-        if opts.enable_pnginfo and info is not None:
+        if info is not None:
             piexif.insert(exif_bytes(), fullfn)
     else:
         image.save(fullfn, quality=opts.jpeg_quality, pnginfo=pnginfo)
 
-    target_side_length = 4000
-    oversize = image.width > target_side_length or image.height > target_side_length
-    if opts.export_for_4chan and (oversize or os.stat(fullfn).st_size > 4 * 1024 * 1024):
-        ratio = image.width / image.height
-
-        if oversize and ratio > 1:
-            image = image.resize((target_side_length, image.height * target_side_length // image.width), LANCZOS)
-        elif oversize:
-            image = image.resize((image.width * target_side_length // image.height, target_side_length), LANCZOS)
-
-        image.save(fullfn_without_extension + ".jpg", quality=opts.jpeg_quality)
-        if opts.enable_pnginfo and info is not None:
-            piexif.insert(exif_bytes(), fullfn_without_extension + ".jpg")
-
-    if opts.save_txt and info is not None:
-        txt_fullfn = f"{fullfn_without_extension}.txt"
-        with open(txt_fullfn, "w", encoding="utf8") as file:
-            file.write(info + "\n")
-    else:
-        txt_fullfn = None
-
-    return fullfn, txt_fullfn
+    return fullfn, None

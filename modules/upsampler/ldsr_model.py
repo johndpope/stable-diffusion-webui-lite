@@ -1,23 +1,20 @@
 import os
 import sys
-import traceback
-
-from basicsr.utils.download_util import load_file_from_url
-
-from modules.upsampler.upscaler import Upscaler, UpscalerData
-from modules.ldsr_model_arch import LDSR
-from modules import shared
-
-import gc
 import time
 import warnings
+import traceback
+import gc
 
-import numpy as np
 import torch
 import torchvision
+import numpy as np
 from PIL import Image
 from einops import rearrange, repeat
 from omegaconf import OmegaConf
+from basicsr.utils.download_util import load_file_from_url
+
+from modules.cmd_opts import cmd_opts
+from modules.upsampler.upscaler import Upscaler, UpscalerData
 
 from ldm.models.diffusion.ddim import DDIMSampler
 from ldm.util import instantiate_from_config, ismap
@@ -273,5 +270,5 @@ class UpscalerLDSR(Upscaler):
         if ldsr is None:
             print("NO LDSR!")
             return img
-        ddim_steps = shared.opts.ldsr_steps
+        ddim_steps = cmd_opts.ldsr_steps
         return ldsr.super_resolution(img, ddim_steps, self.scale)

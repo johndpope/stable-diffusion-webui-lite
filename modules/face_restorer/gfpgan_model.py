@@ -1,18 +1,17 @@
 import os
 import sys
 import traceback
+from typing_extensions import runtime
 
 import facexlib
 import gfpgan
 
-from modules import shared
+from modules import devices
 from modules.paths import MODEL_PATH
-from modules.utils import modelloader, devices
-
-from . import FaceRestore
+from modules.face_restorer import FaceRestorer
 
 
-model_name = "GFPGAN"
+model_name = 'GFPGAN'
 user_path = None
 model_path = os.path.join(MODEL_PATH, model_name)
 model_url = "https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.4.pth"
@@ -31,7 +30,7 @@ def gfpgann():
     if gfpgan_constructor is None:
         return None
 
-    models = modelloader.load_models(model_path, model_url, user_path, ext_filter="GFPGAN")
+    models = load_models(model_path, model_url, user_path, ext_filter="GFPGAN")
     if len(models) == 1 and "http" in models[0]:
         model_file = models[0]
     elif len(models) != 0:
@@ -103,14 +102,14 @@ def setup_model(dirname):
         have_gfpgan = True
         gfpgan_constructor = GFPGANer
 
-        class FaceRestorerGFPGAN(FaceRestore):
+        class FaceRestorerGFPGAN(FaceRestorer):
             def name(self):
                 return "GFPGAN"
 
             def restore(self, np_image):
                 return gfpgan_fix_faces(np_image)
 
-        shared.face_restorers.append(FaceRestorerGFPGAN())
+        runtime.face_restorers['GFPGAN'] = FaceRestorerGFPGAN()
     except Exception:
         print("Error setting up GFPGAN:", file=sys.stderr)
         print(traceback.format_exc(), file=sys.stderr)

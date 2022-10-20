@@ -1,0 +1,15 @@
+{
+  "editor.tabSize": 4,
+  "python.defaultInterpreterPath": "venv/Scripts/python.exe",
+  "python.analysis.include": [
+    "ngrok",
+    "modules",
+    "repos/BLIP",
+    "repos/CodeFormer",
+    "repos/k-diffusion",
+    "repos/k-diffusion/k_diffusion",
+    "repos/stable-diffusion",
+    "repos/stable-diffusion/ldm",
+    "repos/taming-transformers",
+  ]
+}

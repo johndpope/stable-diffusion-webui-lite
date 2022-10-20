@@ -4,6 +4,7 @@ import platform
 import sys
 import tqdm
 
+from modules.runtime import state
 from modules import shared, images
 
 
@@ -78,6 +79,7 @@ def preprocess(process_src, process_dst, process_flip, process_split, process_ca
 
     if process_caption:
         shared.interrogator.send_blip_to_ram()
+
 
 def sanitize_caption(base_path, original_caption, suffix):
     operating_system = platform.system().lower()

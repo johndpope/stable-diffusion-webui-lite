@@ -15,6 +15,7 @@
 
 # web server
 gradio==3.4b3
+Flask
 # fonts
 fonts
 font-roboto
@@ -43,8 +44,15 @@ einops==0.4.1
 #jsonmerge==1.8.0
 #fairscale==0.4.9       # distributed training
 
+# ngrok trunnel
+ngrok-api
+
 # friendly python shell
 pyreadline
+
+pytorch_lightning
+jsonmerge
+kornia
 
 
 #############################################################
@@ -77,7 +85,7 @@ pyreadline
 #torchvision
 #tqdm
 #yapf
-#lpips
+lpips
 #gdown
 
 # k-diffusion

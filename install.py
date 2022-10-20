@@ -6,7 +6,7 @@ import platform
 
 
 GITHUB_REPOS = [
-  # ('author', 'repo_name')
+  # ('author', 'repo')
   ('CompVis',    'stable-diffusion'   ),   # image genegration
   ('CompVis',    'taming-transformers'),   # image genegration
   ('crowsonkb',  'k-diffusion'        ),   # image genegration
@@ -14,7 +14,7 @@ GITHUB_REPOS = [
   ('salesforce', 'BLIP'               ),   # CV-NLP comprehension
 ]
 REPOS = {
-  # 'repo_name': 'commit_hash'
+  # 'repo': 'commit_hash'
   'stable-diffusion':    os.environ.get('STABLE_DIFFUSION_COMMIT_HASH',    '69ae4b35e0a0f6ee1af8bb9a5d0016ccb27e36dc'),
   'taming-transformers': os.environ.get('TAMING_TRANSFORMERS_COMMIT_HASH', '24268930bf1dce879235a7fddd0b2355b84d7ea6'),
   'k-diffusion':         os.environ.get('K_DIFFUSION_COMMIT_HASH',         'f4e99857772fc3a126ba886aadf795a332774878'),
@@ -22,7 +22,7 @@ REPOS = {
   'BLIP':                os.environ.get('BLIP_COMMIT_HASH',                '48211a1594f1321b00f14c9f7a5b4813144b2fb9'),
 }
 PACKAGES = {
-  # 'level': { 'package_name': 'pip install {args}' }
+  # 'level': { 'package': 'pip install {args}' }
   'base': {
     'torch':  'torch==1.12.1+cu113 torchvision==0.13.1+cu113 --extra-index-url https://download.pytorch.org/whl/cu113',
   }, 
@@ -46,12 +46,12 @@ REPO_PATH = os.path.join(BASE_PATH, 'repos')
 
 REPO_PATHS = {
   # 'stable-diffusion': './repos/stable-diffusion'
-  repo_name: os.path.join(REPO_PATH, repo_name) for repo_name in REPOS
+  repo: os.path.join(REPO_PATH, repo) for repo in REPOS
 }
 
 
-def sh(cmd:str, raise_on_error=True, echo=True) -> str:
-  r = subprocess.run(cmd, capture_output=True, shell=True, text=True, encoding='utf8', errors='ignore')
+def sh(cmd:str, echo=True, raise_on_error=True) -> str:
+  r = subprocess.run(cmd, capture_output=True, shell=True, text=True, encoding='utf-8', errors='ignore')
   code = r.returncode
 
   if code == 0:
@@ -71,7 +71,7 @@ def sh(cmd:str, raise_on_error=True, echo=True) -> str:
 
 
 def git_repo(author, repo):
-  dp = os.path.join(REPO_PATH, repo)
+  dp = REPO_PATHS[repo]
 
   if not os.path.exists(dp):
     url = f'https://github.com/{author}/{repo}.git'

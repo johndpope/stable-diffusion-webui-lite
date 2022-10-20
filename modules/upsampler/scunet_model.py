@@ -1,23 +1,19 @@
-import os.path
+import os
 import sys
 import traceback
-
 import PIL.Image
-import numpy as np
-import torch
-from basicsr.utils.download_util import load_file_from_url
 
-from modules.utils import modelloader
-
-from .upscaler import Upscaler
-from modules import devices
-
-import numpy as np
 import torch
 import torch.nn as nn
+import numpy as np
+from basicsr.utils.download_util import load_file_from_url
 from einops import rearrange
 from einops.layers.torch import Rearrange
 from timm.models.layers import trunc_normal_, DropPath
+
+from modules.upsampler.upscaler import Upscaler
+from modules.utils import modelloader
+from modules import devices
 
 
 class WMSA(nn.Module):
@@ -294,17 +290,17 @@ class UpscalerScuNET(Upscaler):
             if "http" in file:
                 name = self.model_name
             else:
-                name = modelloader.friendly_name(file)
+                name = friendly_name(file)
             if name == self.model_name2 or file == self.model_url2:
                 add_model2 = False
             try:
-                scaler_data = modules.upsampler.upscaler.UpscalerData(name, file, self, 4)
+                scaler_data = UpscalerData(name, file, self, 4)
                 scalers.append(scaler_data)
             except Exception:
                 print(f"Error loading ScuNET model: {file}", file=sys.stderr)
                 print(traceback.format_exc(), file=sys.stderr)
         if add_model2:
-            scaler_data2 = modules.upsampler.upscaler.UpscalerData(self.model_name2, self.model_url2, self)
+            scaler_data2 = UpscalerData(self.model_name2, self.model_url2, self)
             scalers.append(scaler_data2)
         self.scalers = scalers
 

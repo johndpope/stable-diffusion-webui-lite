@@ -1,25 +1,26 @@
 import time
-import threading
 from collections import defaultdict
+from threading import Thread, Event
 
 import torch
 
 
-class MemUsageMonitor(threading.Thread):
-    run_flag = None
-    device = None
+class HardwareMonitor(Thread):
+
     disabled = False
-    opts = None
+    run_flag = None
+    update_interval = None
+    device = None
     data = None
 
-    def __init__(self, name, device, opts):
-        threading.Thread.__init__(self)
-        self.name = name
-        self.device = device
-        self.opts = opts
+    def __init__(self, update_interval):
+        super().__init__(self)
+
+        self.device = 'cuda'
+        self.update_interval = update_interval
 
         self.daemon = True
-        self.run_flag = threading.Event()
+        self.run_flag = Event()
         self.data = defaultdict(int)
 
         try:
@@ -30,8 +31,7 @@ class MemUsageMonitor(threading.Thread):
             self.disabled = True
 
     def run(self):
-        if self.disabled:
-            return
+        if self.disabled: return
 
         while True:
             self.run_flag.wait()
@@ -39,7 +39,7 @@ class MemUsageMonitor(threading.Thread):
             torch.cuda.reset_peak_memory_stats()
             self.data.clear()
 
-            if self.opts.memmon_poll_rate <= 0:
+            if self.update_interval <= 0:
                 self.run_flag.clear()
                 continue
 
@@ -49,7 +49,7 @@ class MemUsageMonitor(threading.Thread):
                 free, total = torch.cuda.mem_get_info()  # calling with self.device errors, torch bug?
                 self.data["min_free"] = min(self.data["min_free"], free)
 
-                time.sleep(1 / self.opts.memmon_poll_rate)
+                time.sleep(1 / self.update_interval)
 
     def dump_debug(self):
         print(self, 'recorded data:')

@@ -4,13 +4,13 @@ import sys
 import traceback
 
 import torch
-
-from ldm.util import default
-from modules import shared
-from modules.utils import devices
-import torch
 from torch import einsum
 from einops import rearrange, repeat
+
+from modules import runtime
+from modules import devices
+
+from ldm.util import default
 
 
 class HypernetworkModule(torch.nn.Module):
@@ -50,19 +50,19 @@ def list_hypernetworks(path):
 
 
 def load_hypernetwork(filename):
-    path = shared.hypernetworks.get(filename, None)
+    path = runtime.hypernetworks.get(filename, None)
     if path is not None:
         print(f"Loading hypernetwork {filename}")
         try:
-            shared.loaded_hypernetwork = Hypernetwork(path)
+            runtime.loaded_hypernetwork = Hypernetwork(path)
         except Exception:
             print(f"Error loading hypernetwork {path}", file=sys.stderr)
             print(traceback.format_exc(), file=sys.stderr)
     else:
-        if shared.loaded_hypernetwork is not None:
-            print(f"Unloading hypernetwork")
+        if runtime.loaded_hypernetwork is not None:
+            print("Unloading hypernetwork")
 
-        shared.loaded_hypernetwork = None
+        runtime.loaded_hypernetwork = None
 
 
 def attention_CrossAttention_forward(self, x, context=None, mask=None):
@@ -71,7 +71,7 @@ def attention_CrossAttention_forward(self, x, context=None, mask=None):
     q = self.to_q(x)
     context = default(context, x)
 
-    hypernetwork = shared.loaded_hypernetwork
+    hypernetwork = runtime.loaded_hypernetwork
     hypernetwork_layers = (hypernetwork.layers if hypernetwork is not None else {}).get(context.shape[2], None)
 
     if hypernetwork_layers is not None:

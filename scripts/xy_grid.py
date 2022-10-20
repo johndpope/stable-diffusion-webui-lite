@@ -1,22 +1,21 @@
-from collections import namedtuple
-from copy import copy
-from itertools import permutations, chain
-import random
+import re
 import csv
-from io import StringIO
+import random
 from PIL import Image
-import numpy as np
+from io import StringIO
+from copy import copy
+from collections import namedtuple
+from itertools import permutations, chain
 
-import modules.scripts as scripts
+import numpy as np
 import gradio as gr
 
-from modules import images, hypernetwork
-from modules.processing import process_images, Processed, get_correct_sampler
-from modules.shared import opts, cmd_opts, state
-import modules.shared as shared
-import modules.sd_samplers
-import modules.sd_models
-import re
+from modules import images
+from modules import scripts
+from modules.apps.options import opts
+from modules.runtime import state
+from modules.diffuser import sd_samplers, sd_models, hypernetwork
+from modules.apps.processing import process_images, get_correct_sampler
 
 
 def apply_field(field):
@@ -74,9 +73,9 @@ def apply_sampler(p, x, xs):
 
 
 def apply_checkpoint(p, x, xs):
-    info = modules.sd_models.get_closet_checkpoint_match(x)
+    info = sd_models.get_closet_checkpoint_match(x)
     assert info is not None, f'Checkpoint for {x} not found'
-    modules.sd_models.reload_model_weights(shared.sd_model, info)
+    sd_models.reload_model_weights(shared.sd_model, info)
 
 
 def apply_hypernetwork(p, x, xs):

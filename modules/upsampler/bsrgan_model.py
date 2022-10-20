@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from basicsr.utils.download_util import load_file_from_url
 
-import modules.upsampler.upscaler
+from modules.upsampler.upscaler import Upscaler, UpscalerData
 from modules import devices
 
 import functools
@@ -15,8 +15,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
-
-from modules.utils import modelloader
 
 
 def initialize_weights(net_l, scale=1):
@@ -116,7 +114,7 @@ class RRDBNet(nn.Module):
         return out
 
 
-class UpscalerBSRGAN(modules.upsampler.upscaler.Upscaler):
+class UpscalerBSRGAN(Upscaler):
     def __init__(self, dirname):
         self.name = "BSRGAN"
         self.model_name = "BSRGAN 4x"
@@ -126,15 +124,15 @@ class UpscalerBSRGAN(modules.upsampler.upscaler.Upscaler):
         model_paths = self.find_models(ext_filter=[".pt", ".pth"])
         scalers = []
         if len(model_paths) == 0:
-            scaler_data = modules.upsampler.upscaler.UpscalerData(self.model_name, self.model_url, self, 4)
+            scaler_data = UpscalerData(self.model_name, self.model_url, self, 4)
             scalers.append(scaler_data)
         for file in model_paths:
             if "http" in file:
                 name = self.model_name
             else:
-                name = modelloader.friendly_name(file)
+                name = friendly_name(file)
             try:
-                scaler_data = modules.upsampler.upscaler.UpscalerData(name, file, self, 4)
+                scaler_data = UpscalerData(name, file, self, 4)
                 scalers.append(scaler_data)
             except Exception:
                 print(f"Error loading BSRGAN model: {file}", file=sys.stderr)

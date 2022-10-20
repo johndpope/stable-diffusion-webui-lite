@@ -1,16 +1,13 @@
 import os
 from abc import abstractmethod
+from PIL import Image
 from typing import List
 
-import PIL
-from PIL import Image
-
-import modules.shared
-from modules import shared
-from modules.utils import modelloader
+from modules.cmd_opts import cmd_opts
+from modules.paths import MODEL_PATH
+from modules.devices import device
 
 LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
-from modules.paths import MODEL_PATH
 
 
 class Upscaler:
@@ -27,13 +24,13 @@ class Upscaler:
 
     def __init__(self, create_dirs=False):
         self.mod_pad_h = None
-        self.tile_size = modules.shared.opts.ESRGAN_tile
-        self.tile_pad = modules.shared.opts.ESRGAN_tile_overlap
-        self.device = modules.shared.device
+        self.tile_size = cmd_opts.ESRGAN_tile
+        self.tile_pad = cmd_opts.ESRGAN_tile_overlap
+        self.device = device
         self.img = None
         self.output = None
         self.scale = 1
-        self.half = not modules.shared.cmd_opts.no_half
+        self.half = not cmd_opts.no_half
         self.pre_pad = 0
         self.mod_scale = None
 
@@ -49,10 +46,10 @@ class Upscaler:
             pass
 
     @abstractmethod
-    def do_upscale(self, img: PIL.Image, selected_model: str):
+    def do_upscale(self, img: Image, selected_model: str):
         return img
 
-    def upscale(self, img: PIL.Image, scale: int, selected_model: str = None):
+    def upscale(self, img: Image, scale: int, selected_model: str = None):
         self.scale = scale
         dest_w = img.width * scale
         dest_h = img.height * scale
@@ -70,10 +67,10 @@ class Upscaler:
         pass
 
     def find_models(self, ext_filter=None) -> list:
-        return modelloader.load_models(model_path=self.model_path, model_url=self.model_url, command_path=self.user_path)
+        return load_models(model_path=self.model_path, model_url=self.model_url, command_path=self.user_path)
 
     def update_status(self, prompt):
-        print(f"\nextras: {prompt}", file=shared.progress_print_out)
+        print(f"\nextras: {prompt}", file=cmd_opts.progress_print_out)
 
 
 class UpscalerData:

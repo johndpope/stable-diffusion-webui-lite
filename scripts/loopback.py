@@ -9,6 +9,7 @@ from modules.processing import Processed
 from modules.sd_samplers import samplers
 from modules.shared import opts, cmd_opts, state
 
+
 class Script(scripts.Script):
     def title(self):
         return "Loopback"
